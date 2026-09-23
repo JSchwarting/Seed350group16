@@ -45,9 +45,9 @@ void loop() {
   // Then move the motors to that position
     // if -> left motor = 0, move left motor until left motor position = 0
     // if -> left motor = 1, move left motor until left motor position = 1600 (180 degrees)
-    // if -> right motor = 0, move right motor until left motor position = 0
-    // if -> right motor = 0, move right motor until left motor position = 1600 (180 degrees)
-
+    // if -> right motor = 0, move right motor until right motor position = 0
+    // if -> right motor = 0, move right motor until right motor position = 1600 (180 degrees)
+  // Implement PI control so that it stays at the desired position
 }
 
 // ISR for Motor 1, triggers anytime A changes
