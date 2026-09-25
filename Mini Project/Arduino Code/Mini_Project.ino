@@ -28,6 +28,18 @@ int M2Pos = 0;
 int M1DesiredPos = 0;
 int M2DesiredPos = 0;
 
+// PI controller variables
+float M1DesiredRad = 0;
+float M2DesiredRad = 0;
+float M1Rad = 0;
+float M2Rad = 0;
+
+float M1Error = 0;
+float M2Error = 0;
+
+float M1IntegralError = 0;
+float M2IntegralError = 0;
+
 // Pins that talk to the Pi to track what quadrant the image is in
 int NSPin = 1;
 int EWPin = 2;
@@ -57,14 +69,9 @@ void setup() {
 }
 
 void loop() {
-  // Do some data processing to resolve what two numbers the wheels need to display
-  // Then move the motors to that position
-    // if -> left motor = 0, move left motor until left motor position = 0
-    // if -> left motor = 1, move left motor until left motor position = 1600 (180 degrees)
-    // if -> right motor = 0, move right motor until right motor position = 0
-    // if -> right motor = 0, move right motor until right motor position = 1600 (180 degrees)
   // Implement PI control so that it stays at the desired position
 
+  // Getting Data from Raspberry Pi
   NS = digitalRead(NSPin);
   EW = digitalRead(EWPin);
 
@@ -86,6 +93,15 @@ void loop() {
     M1DesiredPos = 1600:
   }
 
+  M1Rad = 2*PI*(float)M1Pos/3200;
+  M2Rad = 2*PI*(float)M2Pos/3200;
+  M1DesiredRad = 2*PI*(float)M1DesiredPos/3200;
+  M2DesiredPos = 2*PI*(float)M2DesiredPos/3200;
+
+  M1Error = M1DesiredRad - M1Rad;
+  M2Error = M2DesiredRad - M2Rad;
+
+  /*
   if ((M1Pos != M1DesiredPos) || (M2Pos != M2DesiredPos)) {
     if (M1Pos < M1DesiredPos) {
       digitalWrite(MotorEnable, HIGH);
@@ -109,6 +125,7 @@ void loop() {
   } else {
     digitalWrite(MotorEnable, LOW);
   }
+    */
 }
 
 // ISR for Motor 1, triggers anytime A changes
