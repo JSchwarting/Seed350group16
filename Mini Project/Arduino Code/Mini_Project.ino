@@ -39,6 +39,17 @@ float M2Error = 0;
 
 float M1IntegralError = 0;
 float M2IntegralError = 0;
+float M1Voltage = 0;
+float M2Voltage = 0;
+
+// --- closed-loop control gains & limits ---
+float BatteryVoltage = 7.8;   // measured/expected battery voltage
+float M1Kp = 3.5;               // Proportional gain from Simulink
+float M1Ki = 0.5;               // Integral gain from Simulink
+float M2Kp = 3.5;
+float M1Ki = 0.5;
+float SatLimit = 6.0;         // voltage saturation limit, +/- volts
+float dt = 0.1;
 
 // Pins that talk to the Pi to track what quadrant the image is in
 int NSPin = 1;
@@ -59,6 +70,9 @@ void setup() {
   pinMode(M1EncB, INPUT);
   pinMode(M2EncA, INPUT);
   pinMode(M2EncB, INPUT);
+
+  digitalWrite(MotorEnable, HIGH);
+
   // Have the A pins for each motor be attached to our ISR, triggering every time the A pin changes
   attachInterrupt(digitalPinToInterrupt(M1EncA), M1EncISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(M2EncA), M2EncISR, CHANGE);
@@ -101,31 +115,51 @@ void loop() {
   M1Error = M1DesiredRad - M1Rad;
   M2Error = M2DesiredRad - M2Rad;
 
-  /*
-  if ((M1Pos != M1DesiredPos) || (M2Pos != M2DesiredPos)) {
-    if (M1Pos < M1DesiredPos) {
-      digitalWrite(MotorEnable, HIGH);
-      analogWrite(Motor1[1], 56);
-      digitalWrite(Motor1[0], HIGH);
-    } else if(M1Pos > M1DesiredPos) {
-      digitalWrite(MotorEnable, HIGH);
-      analogWrite(Motor1[1], 56);
-      digitalWrite(Motor1[0], LOW);
+  M1IntegralError += M1Error * dt;
+  M2IntegralError += M2Error * dt;
+
+  M1Voltage = (M1Kp * M1Error) + (M1Ki * M1IntegralError);
+  M1Voltage = (M2Kp * M1Error) + (M2Ki * M1IntegralError);
+
+  // --- Voltage Saturation and Anti-Windup ---
+    if (M1Voltage > SatLimit) {
+      M1Voltage = SatLimit;
+      // Clamp integral term to prevent windup when output saturates
+      M1IntegralError -= M1Error * dt; 
+    } else if (M1Voltage < -SatLimit) {
+      M1Voltage = -SatLimit;
+      // Clamp integral term
+      M1IntegralError -= M1Error * dt; 
     }
 
-    if (M2Pos < M2DesiredPos) {
-      digitalWrite(MotorEnable, HIGH);
-      analogWrite(Motor2[1], 56);
-      digitalWrite(Motor2[0], LOW);
-    } else if (M2Pos > M2DesiredPos) {
-      digitalWrite(MotorEnable, HIGH);
-      analogWrite(Motor1[1], 56);
-      digitalWrite(Motor1[0], HIGH);
+    // --- Voltage Saturation and Anti-Windup ---
+    if (M2Voltage > SatLimit) {
+      M2Voltage = SatLimit;
+      // Clamp integral term to prevent windup when output saturates
+      M2IntegralError -= M2Error * dt; 
+    } else if (M2Voltage < -SatLimit) {
+      M2Voltage = -SatLimit;
+      // Clamp integral term
+      M2IntegralError -= M2Error * dt; 
     }
-  } else {
-    digitalWrite(MotorEnable, LOW);
-  }
-    */
+
+    // --- Drive Motor 1 ---
+    if (M1Voltage > 0) {
+      digitalWrite(Motor1[0], HIGH);
+    } else {
+      digitalWrite(Motor1[0], LOW);
+    }
+    int M1PWM = (int)(255.0 * abs(M1Voltage) / BatteryVoltage);
+    analogWrite(Motor1[1], min(M1PWM, 255));
+
+    // --- Drive Motor 2 ---
+    if (M2Voltage > 0) {
+      digitalWrite(Motor2[0], LOW);
+    } else {
+      digitalWrite(Motor2[0], HIGH);
+    }
+    int M2PWM = (int)(255.0 * abs(M2Voltage) / BatteryVoltage);
+    analogWrite(Motor2[1], min(M2PWM, 255));
 }
 
 // ISR for Motor 1, triggers anytime A changes
