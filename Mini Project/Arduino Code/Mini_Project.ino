@@ -6,6 +6,8 @@
 */
 
 // Motor control pins. Configured for direction, speed
+// Motor 1 corresponds to the right (passenger side) wheel
+// Motor 2 corresponds to the left (driver side) wheel
 int Motor1[2] = {7, 9};
 int Motor2[2] = {8, 10};
 
@@ -21,6 +23,16 @@ int M2EncB = 6;
 // Tracking the position of the motors in encoder counts
 int M1Pos = 0;
 int M2Pos = 0;
+
+// What the position should be
+int M1DesiredPos = 0;
+int M2DesiredPos = 0;
+
+// Pins that talk to the Pi to track what quadrant the image is in
+int NSPin = 1;
+int EWPin = 2;
+
+int NS, EW;
 
 void setup() {
   // Set up our motor to be outputs (only necessary for commented out code that controls actually moving the motors), not necessary if only looking at the motor encoders
@@ -38,6 +50,10 @@ void setup() {
   // Have the A pins for each motor be attached to our ISR, triggering every time the A pin changes
   attachInterrupt(digitalPinToInterrupt(M1EncA), M1EncISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(M2EncA), M2EncISR, CHANGE);
+
+  // Pin set up to talk to the Raspberry Pi
+  pinMode(NSPin, INPUT);
+  pinMode(EWPin, INPUT);
 }
 
 void loop() {
@@ -48,11 +64,55 @@ void loop() {
     // if -> right motor = 0, move right motor until right motor position = 0
     // if -> right motor = 0, move right motor until right motor position = 1600 (180 degrees)
   // Implement PI control so that it stays at the desired position
+
+  NS = digitalRead(NSPin);
+  EW = digitalRead(EWPin);
+
+  // In north half if NS = 0, In south half if NS = 1
+  if (NS = 0) {
+    // move left motor to pos 0 (0 degrees = 0 encoder counts)
+    M2DesiredPos = 0;
+  } else if (NS = 1) {
+    // move left motor to pos 1 (180 degress = 1600 encoder counts)
+    M2DesiredPos = 1600;
+  }
+
+  // IN east half if EW = 0, In west half if EW = 1
+  if (EW = 0) {
+    // move right motor to pos 0 (0 degrees = 0 encoder counts)
+    M1DesiredPos = 0;
+  } else if (EW = 1) {
+    // move right motor to pos 1 (180 degrees = 1600 encoder counts)
+    M1DesiredPos = 1600:
+  }
+
+  if ((M1Pos != M1DesiredPos) || (M2Pos != M2DesiredPos)) {
+    if (M1Pos < M1DesiredPos) {
+      digitalWrite(MotorEnable, HIGH);
+      analogWrite(Motor1[1], 56);
+      digitalWrite(Motor1[0], HIGH);
+    } else if(M1Pos > M1DesiredPos) {
+      digitalWrite(MotorEnable, HIGH);
+      analogWrite(Motor1[1], 56);
+      digitalWrite(Motor1[0], LOW);
+    }
+
+    if (M2Pos < M2DesiredPos) {
+      digitalWrite(MotorEnable, HIGH);
+      analogWrite(Motor2[1], 56);
+      digitalWrite(Motor2[0], LOW);
+    } else if (M2Pos > M2DesiredPos) {
+      digitalWrite(MotorEnable, HIGH);
+      analogWrite(Motor1[1], 56);
+      digitalWrite(Motor1[0], HIGH);
+    }
+  } else {
+    digitalWrite(MotorEnable, LOW);
+  }
 }
 
 // ISR for Motor 1, triggers anytime A changes
 void M1EncISR() {
-  // M1move = true;
   // Checks if A and B are equal when A has changed, if so the position increased 
   if (digitalRead(M1EncA) == digitalRead(M1EncB)) {
     M1Pos += 2;
@@ -65,7 +125,6 @@ void M1EncISR() {
 // ISR for Motor 2, triggers anytime A changes. 
 // Note: The checks are flipped from Motor1 since Motor2 is facing the opposite direction and we want to make positive position one direction the robot moves, not how the individual wheel moves
 void M2EncISR() {
-  // M2move = true;
   // Checks if A and B are equal when A has changed, if so the position is decreased
   if (digitalRead(M2EncA) == digitalRead(M2EncB)) {
     M2Pos -= 2;
