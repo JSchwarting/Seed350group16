@@ -7,7 +7,15 @@
     Hardware connections described in lines 12-24
     and 57-58
     Variable names describe Pin functions and connection to the Arduino.
-    
+
+    Pi -> Arduino link is I2C (Pi = leader, Arduino = follower, address 8):
+      Pi SDA (GPIO2) -> Arduino A4 (SDA)
+      Pi SCL (GPIO3) -> Arduino A5 (SCL)
+      Pi GND         -> Arduino GND
+    Use a bidirectional level shifter between the Pi (3.3 V) and Arduino (5 V).
+
+    Pi sends one byte:  bit1 = left bit  = NS (0 = north, 1 = south)  -> Motor 2 (left wheel)
+                        bit0 = right bit = EW (0 = east,  1 = west)   -> Motor 1 (right wheel)
 */
 
 // Motor control pins. Configured for direction, speed
