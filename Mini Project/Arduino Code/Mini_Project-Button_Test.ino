@@ -8,7 +8,7 @@
     in the top or bottom (north south button) or the left or right (East West button), together this information becomes a 
     two bit vector that determines what quadrant we are in. 
 
-    Pins are descripted in lines 14-28 and 61-62
+    Pins are described in lines 14-28 and 61-62
 */
 
 // Motor control pins. Configured for direction, speed
