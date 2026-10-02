@@ -18,6 +18,11 @@
                         bit0 = right bit = EW (0 = east,  1 = west)   -> Motor 1 (right wheel)
 */
 
+// Library for I2C
+#include <Wire.h>
+// The address of the Arduino for I2C
+#define I2C_Address 0x08
+
 // Motor control pins. Configured for direction, speed
 // Motor 1 corresponds to the right (passenger side) wheel
 // Motor 2 corresponds to the left (driver side) wheel
@@ -34,8 +39,8 @@ int M2EncA = 3;
 int M2EncB = 6;
 
 // Tracking the position of the motors in encoder counts
-int M1Pos = 0;
-int M2Pos = 0;
+volatile int M1Pos = 0;
+volatile int M2Pos = 0;
 
 // What the position should be
 int M1DesiredPos = 0;
@@ -60,16 +65,12 @@ float BatteryVoltage = 7.8;   // measured/expected battery voltage
 float M1Kp = 3.5;               // Proportional gain from Simulink
 float M1Ki = 0.5;               // Integral gain from Simulink
 float M2Kp = 3.5;
-float M1Ki = 0.5;
+float M2Ki = 0.5;
 float SatLimit = 6.0;         // voltage saturation limit, +/- volts
 float dt = 0.1;
 
-// Pins that talk to the Pi to track what quadrant the image is in
-int NSPin = 12;
-int EWPin = 13;
-
-int NS = 0;
-int EW = 0;
+volatile int NS = 0;
+volatile int EW = 0;
 
 void setup() {
   // Set up our motor to be outputs (only necessary for commented out code that controls actually moving the motors), not necessary if only looking at the motor encoders
@@ -91,47 +92,60 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(M1EncA), M1EncISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(M2EncA), M2EncISR, CHANGE);
 
-  // Pin set up to talk to the Raspberry Pi
-  pinMode(NSPin, INPUT);
-  pinMode(EWPin, INPUT);
+  // Setup for I2C communication
+  Wire.begin(I2C_Address);
+  Wire.onReceive(quadrant);
+}
+
+// Function for receiving data
+void quadrant(int numBytes) {
+  // Make sure we can communicate
+  while (Wire.available()) {
+    // Incoming data from the Pi
+    byte data = Wire.read();
+    // Bit 1 is the NS data
+    NS = bitRead(data, 1);
+    // Bit 0 is the EW data
+    EW = bitRead(data, 0);
+  }
 }
 
 void loop() {
-  // Getting Data from Raspberry Pi
-  NS = digitalRead(NSPin);
-  EW = digitalRead(EWPin);
-
   // In north half if NS = 0, In south half if NS = 1
-  if (NS = 0) {
+  if (NS == 0) {
     // move left motor to pos 0 (0 degrees = 0 encoder counts)
     M2DesiredPos = 0;
-  } else if (NS = 1) {
+  } else if (NS == 1) {
     // move left motor to pos 1 (180 degress = 1600 encoder counts)
     M2DesiredPos = 1600;
   }
 
   // IN east half if EW = 0, In west half if EW = 1
-  if (EW = 0) {
+  if (EW == 0) {
     // move right motor to pos 0 (0 degrees = 0 encoder counts)
     M1DesiredPos = 0;
-  } else if (EW = 1) {
+  } else if (EW == 1) {
     // move right motor to pos 1 (180 degrees = 1600 encoder counts)
     M1DesiredPos = 1600:
   }
 
+  // Calculating radians from position
   M1Rad = 2*PI*(float)M1Pos/3200;
   M2Rad = 2*PI*(float)M2Pos/3200;
   M1DesiredRad = 2*PI*(float)M1DesiredPos/3200;
-  M2DesiredPos = 2*PI*(float)M2DesiredPos/3200;
+  M2DesiredRad = 2*PI*(float)M2DesiredPos/3200;
 
+  // Calculating our error
   M1Error = M1DesiredRad - M1Rad;
   M2Error = M2DesiredRad - M2Rad;
 
+  // Incorporating our error for our PI control
   M1IntegralError += M1Error * dt;
   M2IntegralError += M2Error * dt;
 
+  // Find the motor voltage we need to correct for our error
   M1Voltage = (M1Kp * M1Error) + (M1Ki * M1IntegralError);
-  M1Voltage = (M2Kp * M1Error) + (M2Ki * M1IntegralError);
+  M2Voltage = (M2Kp * M2Error) + (M2Ki * M2IntegralError);
 
   // --- Voltage Saturation and Anti-Windup ---
     if (M1Voltage > SatLimit) {
