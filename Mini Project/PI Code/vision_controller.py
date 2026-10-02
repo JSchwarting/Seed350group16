@@ -2,8 +2,24 @@
 # Computer Vision and System Integration
 # Author: Isha Singh & Team
 # Purpose of the code: 
+"""
+The purpose of this code is to use a Raspberry Pi as the main decision-maker for a 
+robotic system. It uses a USB camera to track the physical location of a specific 
+ArUco marker (ID 0) and maps its position to one of four quadrants on the screen. 
+Based on which quadrant the marker is in, the code calculates the required target 
+positions for the robot's left and right wheels. It then packages these wheel 
+targets into a single 1-byte message and sends it to the Arduino, which acts as 
+the follower to physically drive the motors. At the same time, the code runs a 
+background process to continuously display these wheel goals on an LCD screen 
+without freezing the live camera feed.
+"""
 # Hardware connection:
-
+"""
+The system uses an I2C connection consisting of three wires to link the Raspberry Pi (leader) to the Arduino (follower):   
+- SDA (Data - Blue Wire): Connects the Pi's GPIO2 (Pin 3) to the Arduino's A4 pin. This is the messaging pipeline that sends the 1-byte wheel commands.   
+- SCL (Clock - Yellow Wire): Connects the Pi's GPIO3 (Pin 5) to the Arduino's A5 pin. This acts as a metronome to keep both circuit boards synchronized at the exact same communication speed.   
+- GND (Ground - Black Wire): Connects a Pi Ground pin (Pin 6) to an Arduino Ground pin. This creates a shared electrical baseline so both boards correctly understand the high and low voltage signals being transmitted.
+"""
 
 import cv2
 import numpy as np
