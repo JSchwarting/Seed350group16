@@ -1,5 +1,6 @@
 Group: Team 16
 Purpose: This repository houses all code related to the Mini Project for SEED Lab
+Top Level File for grading is Mini_Project.ino within the Arduino Code Folder. 
 Organization:
     Arduino Code: Houses all .ino code that go onto the Arduino
     MatLab Code: Houses any MatLab code and Simulink models
