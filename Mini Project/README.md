@@ -18,6 +18,8 @@ Advanced File Descriptions:
 
         Working Position Control: More reference code similar to that of above. While not integral to the project shows iteration. 
 
+        Pi to Arduino Test: Tests the implementation of data transfer from the pi to the Arduino. 
+
     PiCode:
         Vision Controller: This file uses pixel logic to determine what quadrant the object is relative to the cameras vision, and outputs that information
         as a 2 bit vector, 
