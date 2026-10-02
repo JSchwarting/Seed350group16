@@ -3,6 +3,9 @@
   Mini Project
     Image will be shown to a camera. Camera returns what quadrant the image is in.
     Then the Arduino will spin it's motors accordingly to display either the "top" or "bottom" of the wheel.
+
+    Hardware connections described in lines 12-24
+    and 57-58
 */
 
 // Motor control pins. Configured for direction, speed
