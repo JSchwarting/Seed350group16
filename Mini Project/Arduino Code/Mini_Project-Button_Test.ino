@@ -9,6 +9,7 @@
     two bit vector that determines what quadrant we are in. 
 
     Pins are described in lines 14-28 and 61-62
+    Variable names describe Pin functions and connection to the Arduino.
 */
 
 // Motor control pins. Configured for direction, speed
