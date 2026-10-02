@@ -126,7 +126,7 @@ void loop() {
     M1DesiredPos = 0;
   } else if (EW == 1) {
     // move right motor to pos 1 (180 degrees = 1600 encoder counts)
-    M1DesiredPos = 1600:
+    M1DesiredPos = 1600;
   }
 
   // Calculating radians from position
