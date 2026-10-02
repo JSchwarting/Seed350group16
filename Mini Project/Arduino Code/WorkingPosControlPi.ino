@@ -4,6 +4,8 @@
   Desired position steps to PI (3.14159 rad) at t = 2s.
   
   Hardware connection pin numbers shown in lines 10-18
+  Variable names describe Pin functions and connection to the Arduino.
+
 */
 
 // Configured for direction, speed
