@@ -6,6 +6,8 @@
 
     Hardware connections described in lines 12-24
     and 57-58
+    Variable names describe Pin functions and connection to the Arduino.
+    
 */
 
 // Motor control pins. Configured for direction, speed
