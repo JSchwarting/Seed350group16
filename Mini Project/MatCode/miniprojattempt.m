@@ -1,3 +1,11 @@
+//Jake Schwarting
+//Group 16
+//Simulation Results Plot
+//%This mat code will take the values that we simulated in our Position Model Simululink and plot them so that we were able to optimize
+//% our PI controller values and display our output position and the voltage that was required to maintain that position.
+
+//%values for velocity control
+
 K = 1.375;       % DC gain [rad/Vs]
 sigma = 14;      % time constant reciprocal [1/s]
 Kp = 3;          % proportional gain
