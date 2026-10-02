@@ -2,6 +2,8 @@
   SEED Lab - Group 16
   Closed-loop PI Position Controller test on Motor 1.
   Desired position steps to PI (3.14159 rad) at t = 2s.
+
+  Motor pins described in 10-18
 */
 
 // Configured for direction, speed
