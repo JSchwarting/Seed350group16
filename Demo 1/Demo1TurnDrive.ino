@@ -105,6 +105,13 @@ float rho_start = 0;         // rho when DRIVE begins, so the turn doesn't count
 float settle_timer = 0;
 float phase_timer = 0;       // s since the current TURN or DRIVE phase began
 
+float M1CarpetVScale = 1.1;
+float M2CarpetVScale = 1.1;
+
+float M1TileVScale = 1;
+float M2TileVScale = 1;
+
+
 void setup() {
   pinMode(MotorEnable, OUTPUT);
   pinMode(Motor1[0], OUTPUT);
@@ -219,8 +226,8 @@ void loop() {
   float Va_bar = Kp_rho_in * (rho_dot_d - rho_dot);
   float dVa = Kp_phi_in * (phi_dot_d - phi_dot);
 
-  float Va1 = (Va_bar + dVa) / 2.0;
-  float Va2 = (Va_bar - dVa) / 2.0;
+  float Va1 = M1CarpetVScale * ((Va_bar + dVa) / 2.0);
+  float Va2 = M2CarpetVScale * ((Va_bar - dVa) / 2.0);
 
   // Optional friction kick (skipped for tiny commands so it doesn't buzz at rest)
   if (FrictionVolts > 0) {
