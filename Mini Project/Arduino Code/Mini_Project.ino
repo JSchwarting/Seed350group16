@@ -67,7 +67,7 @@ float M1Ki = 0.5;               // Integral gain from Simulink
 float M2Kp = 3.5;
 float M2Ki = 0.5;
 float SatLimit = 6.0;         // voltage saturation limit, +/- volts
-float dt = 0.1;
+float dt = 0.01;
 
 volatile int NS = 0;
 volatile int EW = 0;

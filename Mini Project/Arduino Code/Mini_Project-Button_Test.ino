@@ -150,7 +150,7 @@ void loop() {
       M2Voltage = (-1 * SatLimit);
       // Clamp integral term
       M2IntegralError -= M2Error * dt; 
-    }
+    } 
 
     // --- Drive Motor 1 ---
     if (M1Voltage > 0) {
