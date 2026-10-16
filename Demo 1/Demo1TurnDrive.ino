@@ -29,7 +29,7 @@
 */
 
 // ---------------- Demo settings (hard-code before download) ----------------
-float PhiGoalDeg = 45.0;      // deg, + = left (CCW). 0 = task 2 straight test
+float PhiGoalDeg = 0.0;      // deg, + = left (CCW). 0 = task 2 straight test
 float DistGoalFt = 10.0;      // ft, 1 to 10
 float StartDelay = 3.0;      // s standing still before moving
 // ----------------------------------------------------------------------------
@@ -66,8 +66,8 @@ float DriveTimeout = 40.0;           // s, stop after this no matter what (demo 
 float FrictionVolts = 0.5;
 
 // Robot geometry. MEASURE THESE (same as steering_params.m).
-float r = 0.077;             // wheel radius (m), 15.4 cm wheel diameter (measured)
-float d = 0.347;             // wheel separation (m), 34.7 cm (measured)
+float r = 0.075;             // wheel radius (m), 15.4 cm wheel diameter (measured)
+float d = 0.34;             // wheel separation (m), 34.7 cm (measured)
 
 float BatteryVoltage = 7.8;
 const float FtToM = 0.3048;
