@@ -102,11 +102,12 @@
     t | state | phi_des | phi | rho_des | rho | phi_dot_d | phi_dot | rho_dot_d | rho_dot | Va1 | Va2
   Angles in degrees and distances in feet, so it reads like the demo.
   The run ends with the final errors and a line containing only END.
+  6.364
 */
 
 // ---------------- Demo settings (hard-code before download) ----------------
 float PhiGoalDeg = 0.0;      // deg, + = left (CCW). 0 = task 2 straight test
-float DistGoalFt = 15.0;      // ft, 1 to 10
+float DistGoalFt = 6.0;      // ft, 1 to 10
 float StartDelay = 3.0;      // s standing still before moving
 // ----------------------------------------------------------------------------
 
@@ -130,7 +131,7 @@ float Kd_rho_out = 0.0;
 // Integral gains (the "I" in PI). The integral of the position error keeps growing
 // while the robot sits short of the goal, so the speed request (and the motor
 // voltage) keeps rising until friction is overcome and the error goes to zero.
-float Ki_phi_out = 2.0;       // (rad/s) per (rad*s)
+float Ki_phi_out = 2.5;       // (rad/s) per (rad*s)
 float Ki_rho_out = 0.5;       // (m/s) per (m*s)  (was 2.0; bigger = more overshoot)
 
 // Anti-windup: the integral only runs once the robot is close to the goal. Far
@@ -143,7 +144,7 @@ float IntBandRho = 0.05;               // m, integrate only within 5 cm (2 in) o
 // ask for, so the wheels don't slip and the voltages stay under the battery.
 // Because the inner loop reaches 2/3 of its setpoint, the actual cruise speeds
 // are about 1.0 rad/s turning and 0.33 m/s (1.1 ft/s) driving.
-float phidot_max = 1.5;      // rad/s
+float phidot_max = 1.0;      // rad/s
 float rhodot_max = 0.5;      // m/s
 
 // When each phase ends. Motor friction stops the robot a little short of the
@@ -154,7 +155,7 @@ float DistTol = 0.0127;              // m (0.5 in), finish once stopped within t
 float StillRate = 0.01;              // m/s and rad/s counted as "stopped"
 float SettleTime = 0.3;              // s it must stay stopped
 float StuckTime = 3.0;                // s stopped outside tolerance before moving on anyway
-float TurnTimeout = 6.0;             // s, start driving after this no matter what
+float TurnTimeout = 10.0;             // s, start driving after this no matter what
 float DriveTimeout = 40.0;           // s, stop after this no matter what (demo limit is 60 s)
 
 // Optional friction kick (V per wheel) to close the last bit of error. 0 = off.
@@ -165,7 +166,7 @@ float FrictionVolts = 0.5;
 // d turns the wheel difference into heading. If the robot goes consistently too far
 // or too short, r is off; if it over- or under-turns, d is off.
 float r = 0.075;             // wheel radius (m), 15.4 cm wheel diameter (measured)
-float d = 0.34;             // wheel separation (m), 34.7 cm (measured)
+float d = 0.3289;             // wheel separation (m), 34.7 cm (measured)
 
 float BatteryVoltage = 7.8;   // V, used to turn a voltage command into a PWM duty cycle
 const float FtToM = 0.3048;
