@@ -17,8 +17,8 @@ Advanced File Descriptions:
             get_images.py: Snaps pictures of the flat checkerboard pattern using the camera. (Mostly for calibration)
 
         Simulation Files Folder:
-            steering_inner.slxc:
+            steering_inner.slxc: Simulation of just the Inner Block before adding the outer block.
 
-            steering_turn.slxc:
+            steering_turn.slxc: Simulation of just Turning a certain angle without going forward.
 
-            SteeringFull.slx:
+            SteeringFull.slx: Simulation of the Full Robot, including XY Visulation from phi/rho. 
