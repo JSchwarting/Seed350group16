@@ -10,11 +10,11 @@ Advanced File Descriptions:
         Demo1OutdatedCode Folder: Files in this code are previous iterations of our final code. This includes edited Mini-Project code from early in the project, to separate files from calibration testing with only slightly different values.
 
         CV Files Folder:
-            calibrate.py: 
+            calibrate.py: Analyzes those checkerboard pictures to calculate the camera's lens distortion and saves the math (the .npzfile). (Mostly for calibration)
 
-            detect_aruco.py:
+            detect_aruco.py: The main script that runs on the robot; it loads the saved math, finds the ArUco marker, and calculates its exact angle in real-time using simple geometry.
 
-            get_images.py:
+            get_images.py: Snaps pictures of the flat checkerboard pattern using the camera. (Mostly for calibration)
 
         Simulation Files Folder:
             steering_inner.slxc:
