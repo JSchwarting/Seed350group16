@@ -15,25 +15,23 @@ volatile bool beacon_detected = 0;
 volatile bool arrow_direction = 0;
 // 0 means we need to turn, 1 means don't turn
 volatile bool no_turn = 1;
-// 2nd byte of info -> stores how far away the ardunio is from the beacon (not units between the Pi and Arduino), max value is 255
-volatile int distance_away = 0;
-// 3rd byte of info -> stores the angle the displacement of the marker once the robot detects the marker, max value is -128 to 127 degrees which should be plenty for our camera FOV
-// Probably best to use 2's complement, but we can transfer the negative number in a few different ways if that would be easier on the Pi side
-volatile int angle_away = 0;
+// Bytes 2-5 of info -> stores how far away the ardunio is from the beacon (note units between the Pi and Arduino)
+volatile float distance_away = 0;
+// bytes 6-9 of info -> stores the angle the displacement of the marker once the robot detects the marker
+volatile float angle_away = 0;
 // Flag that checks if we got new data, used in conjuction with turning interrupts off when we store the volatile data into a stable data type so it can't change on us mid-read
 volatile bool new_Data = 0;
-
-// note: all the max values above are based on the type casting below, if we need higher numbers we can just read in two bytes of data and add the values to get the larger numbers
-// note: for distance and angle, so far I have been writing it assuming whole numbers (ints), will need to figure out how to do floating point
+// note: distance_away and anlge_away are transferred as floats which automatically account for negative values, not sure what the #.# format is, look it up to make sure we code it correctly on the Pi side
 
 void CV_Info(int numBytes) {
-  // checks how many bytes we got, if it != 3, then drain then get rid of the data (quickly read it without storing it anywhere)
-  if (numBytes != 3) {
+  // checks how many bytes we got, if it != 9, then drain then get rid of the data (quickly read it without storing it anywhere)
+  if (numBytes != 9) {
     while (Wire.available()) Wire.read();
     return;
   }
 
-  byte beacon_info = (uint8_t)Wire.read(); // type casted to specify that it is 1 byte wide and an unsigned integer
+  // checking individual bits for the values we need (5 extra bits for more information to carry in future if needed)
+  byte beacon_info = Wire.read();
   beacon_detected = bitRead(beacon_info, 0);
   if (bitRead(beacon_info, 1) == 1) {
     arrow_direction = 0;
@@ -44,21 +42,29 @@ void CV_Info(int numBytes) {
   } else {
     no_turn = 1;
   }
-  distance_away = (uint8_t)Wire.read(); // type casted to specify that it is 1 byte wide and an unsigned integer
-  angle_away = (int8_t)Wire.read(); // type casted to specify that it is 1 byte wide and a signed integer
+
+  // complicated since we are communicating floating point values (4 bytes for each float value, sign is transferred automatically)
+  float d, a;
+  uint8_t geo_values[8];
+  for (int i = 0; i < 8; i++) geo_values[i] = Wire.read();
+  memcpy(&d, &geo_values[0], sizeof(float));
+  memcpy(&a, &geo_values[4], sizeof(float));
+  distance_away = d;
+  angle_away = a;
   new_Data = 1;
 }
 
 void loop() {
-  if (newData) {
+  // I2C code to extract values for our data
+  if (new_Data) {
     // Copy with interrupts off so a new packet can't change values mid-read
     noInterrupts();
     bool b_det = beacon_detected;
     bool n_turn = no_turn;
     bool a_dir = arrow_direction;
-    int dist = distance;
-    int  ang  = angle;
-    newData = 0;
+    float dist = distance_away;
+    float  ang  = angle_away;
+    new_Data = 0;
     interrupts();
   }
 }

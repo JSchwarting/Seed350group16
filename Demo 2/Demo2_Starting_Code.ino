@@ -1,113 +1,24 @@
 /*
-  SEED Lab - Group 16
-  Demo 1 - Tasks 2 and 3: turn to an angle, then drive a distance.
+  Got rid of the Demo 1 comments describing everything, going to make a list of changes here:
+    1. GoalDeg and GoalFt no longer hard coded values, will get them from the Pi
 
-  *** UPDATED VERSION (Oct 16): outer loops changed from PD to PI ***
-  The original Demo1TurnDrive.ino is unchanged. Differences from it:
-    - Ki_phi_out = 2.0 and Ki_rho_out = 0.5 added (integral of the position error),
-      so friction can no longer leave the robot stopped a little short of the goal.
-    - Anti-windup: the integral only runs within 5 deg / 5 cm of the goal and stops
-      growing while the speed request is at its limit (see section 5).
-    - StuckTime raised from 1.0 to 3.0 s so the integral has time to push through
-      friction before a phase is cut off.
-    - Kp_rho_out raised from 4.0 to 6.0 (Oct 19, matches steering_params.m: with
-      Ki_rho_out = 0.5 the Simulink model overshoots only ~0.06 in).
-    Everything else (other gains, r, d, goals, pins) is the same as the original.
+    2. Basic setup for I2C
+  
+  List of ideas for how to implement Demo 2:
+    1. For goal Deg -> gets value from Pi if it sees the marker (how far off are we from center and how much do we need to turn ->
+    verify Pi can do this with Isha), Otherwise set to 30 deg? or we could set the phidot value to some set velocity, don't know how that will 
+    affect our controller (check with Jake)
 
-  ============================== HOW IT WORKS ==============================
-
-  1) WHAT WE MEASURE (encoders -> wheel angles -> robot motion)
-     Each encoder gives 3200 counts per wheel revolution, so a wheel angle is
-         theta = 2*pi * counts / 3200            (rad)
-     Motor 1 is the RIGHT wheel and Motor 2 is the LEFT wheel. Both count up
-     when their wheel rolls forward. From the two wheel angles we get the robot's
-     forward distance rho and heading phi (handout kinematics):
-         rho     = r*(theta1 + theta2)/2         (m)    average wheel travel
-         phi     = r*(theta1 - theta2)/d         (rad)  right wheel ahead = turned left
-         rho_dot = r*(thetadot1 + thetadot2)/2   (m/s)
-         phi_dot = r*(thetadot1 - thetadot2)/d   (rad/s)
-     r = wheel radius, d = distance between the wheels. phi is positive
-     counterclockwise (turning left), matching the demo's sign convention.
-
-  2) WHAT WE CONTROL (two "virtual" voltages instead of two wheel voltages)
-     Instead of thinking about Va1 (right) and Va2 (left) separately, we use
-         Va_bar = Va1 + Va2     (sum)        -> mostly makes the robot go forward
-         dVa    = Va1 - Va2     (difference) -> mostly makes the robot turn
-     and convert back at the end:  Va1 = (Va_bar + dVa)/2,  Va2 = (Va_bar - dVa)/2.
-     This splits the robot into two independent single-input systems.
-
-  3) THE PLANT (transfer functions from the step-response model)
-     Each motor behaves like  thetadot/V = K*sigma/(s + sigma)  with K = 1.375
-     rad/s per V and sigma = 14 1/s (mini project fit). Putting two of them
-     through the kinematics above gives first-order transfer functions:
-         G_rho(s) = rho_dot(s)/Va_bar(s) = K_rho*sigma/(s + sigma),  K_rho = r*K/2
-         G_phi(s) = phi_dot(s)/dVa(s)    = K_phi*sigma/(s + sigma),  K_phi = r*K/d
-     With r = 0.077 m and d = 0.347 m: K_rho = 0.053 (m/s)/V, K_phi = 0.305 (rad/s)/V.
-     Position is the integral of speed: rho = rho_dot/s, phi = phi_dot/s.
-
-  4) INNER LOOPS: proportional (P) speed control
-         Va_bar = Kp_rho_in * (rho_dot_d - rho_dot)
-         dVa    = Kp_phi_in * (phi_dot_d - phi_dot)
-     Closing a P loop around a first-order plant gives another first-order system:
-         rho_dot/rho_dot_d = Kp*K_rho*sigma / (s + sigma*(1 + Kp*K_rho))
-     We pick Kp so that Kp*K = 2 (Kp_rho_in = 2/0.053 = 37.8, Kp_phi_in = 2/0.305 = 6.55):
-       - the closed-loop pole moves from sigma = 14 to 3*sigma = 42 1/s
-         (3x faster, time constant about 24 ms)
-       - the steady-state gain is Kp*K/(1 + Kp*K) = 2/3, so the robot only reaches
-         2/3 of the speed it is asked for. That's fine: the outer loops below see
-         the leftover position error and keep pushing until it is gone.
-     These match the Simulink inner-loop model (steering_inner.slx).
-
-  5) OUTER LOOPS: PI position control (plus an optional D term, Kd = 0 now)
-         phi_dot_d = Kp_phi_out*e_phi + Ki_phi_out*integral(e_phi dt) - Kd_phi_out*phi_dot
-         rho_dot_d = Kp_rho_out*e_rho + Ki_rho_out*integral(e_rho dt) - Kd_rho_out*rho_dot
-     with e_phi = phi_des - phi and e_rho = rho_des - rho.
-     The outer controller looks at the position error and asks the inner loop
-     for a speed. Because the plant integrates speed into position (the 1/s),
-     the loop drives the position error to zero on its own in the ideal model.
-     On the real robot, friction means a small speed request makes no motion, so
-     P alone can stall a little short. The integral fixes that: while an error
-     remains, integral(e dt) keeps growing, the speed request keeps rising, and the
-     robot creeps the rest of the way. In Laplace terms C(s) = Kp + Ki/s, which adds
-     a zero at s = -Ki/Kp (-0.33 for phi, -0.083 for rho), well below the loop
-     bandwidth, so the fast response is mostly unchanged.
-     Anti-windup: integrating during the whole 15 ft drive would build a huge
-     integral and overshoot. So the integral is held at 0 until the robot is within
-     IntBandPhi / IntBandRho of the goal, and a sample is "undone" whenever the
-     speed request is clamped at phidot_max / rhodot_max.
-     Treating the fast inner loop as a gain of 2/3, the angle loop is roughly
-         phi/phi_des ~= a/(s + a),  a = Kp_phi_out*2/3 = 6*2/3 = 4 1/s  (tau = 0.25 s)
-     and the distance loop has a = Kp_rho_out*2/3 = 6*2/3 = 4 1/s (tau = 0.25 s).
-     The D term is applied to the measured rate (phi_dot, rho_dot) instead of the
-     error, so a sudden setpoint change does not cause a derivative "kick".
-     Kd = 0 right now (pure P). Raise Kd_phi_out to 0.05-0.2 if the turn overshoots.
-     The speed requests are capped (phidot_max, rhodot_max), so a big turn or long
-     drive runs at a steady speed, then slows down smoothly as the error shrinks.
-
-  6) SEQUENCE (state machine)
-      WAIT   - stand still for StartDelay s (demo must start within 10 s)
-      TURN   - angle loop drives phi to PhiGoalDeg, distance loop holds rho still
-      DRIVE  - distance loop drives rho to DistGoalFt; angle loop keeps holding heading
-               (this is what keeps it driving straight and self-correcting)
-      DONE   - motors off, print final errors
-    TURN -> DRIVE once the robot has stopped within TurnTol for SettleTime
-    (the Simulink models used a fixed t_drive instead). DRIVE -> DONE the same
-    way with DistTol. If friction stalls it outside tolerance for StuckTime, or
-    a phase runs past its timeout, it moves on anyway so it can never hang.
-
-  Task 2 (straight line): PhiGoalDeg = 0, DistGoalFt = 1..10
-  Task 3 (turn then go):  PhiGoalDeg = angle (+ = left / CCW), DistGoalFt = distance
-
-  Serial output (115200 baud), tab separated, one line per 10 ms:
-    t | state | phi_des | phi | rho_des | rho | phi_dot_d | phi_dot | rho_dot_d | rho_dot | Va1 | Va2
-  Angles in degrees and distances in feet, so it reads like the demo.
-  The run ends with the final errors and a line containing only END.
-  6.364
+    2. For goal Ft -> can we calculate how far the beacon is away from our camera?
 */
 
+#include <Wire.h>
+#define Arduino_Addr 0x08
+
+
 // ---------------- Demo settings (hard-code before download) ----------------
-float PhiGoalDeg = 0.0;      // deg, + = left (CCW). 0 = task 2 straight test
-float DistGoalFt = 6.0;      // ft, 1 to 10
+float PhiGoalDeg;      // deg, + = left (CCW). 0 = task 2 straight test
+float DistGoalFt;      // ft, 1 to 10
 float StartDelay = 3.0;      // s standing still before moving
 // ----------------------------------------------------------------------------
 
@@ -221,14 +132,79 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(M2EncA), M2EncISR, CHANGE);
 
   Serial.begin(115200);
-  Serial.println("t\tstate\tphi_des\tphi\trho_des\trho\tphi_dot_d\tphi_dot\trho_dot_d\trho_dot\tVa1\tVa2");
+  Serial.println("t\tstate\tphi_des\tphi\trho_des\trho\tphi__d\tphi_dot\trho_dot_d\trho_dot\tVa1\tVa2");
 
   digitalWrite(MotorEnable, HIGH);
   last_time = millis();
   start_time = last_time;
+
+  Wire.begin(Arduino_Addr);
+  Wire.onReceive(CV_Info);
 }
 
+// 1st byte of info -> stores when we detect the beacon (for test 1 and 2) and what direction the arrow it sees is (for test 2)
+// Idea for how to set up this first byte could be to have bit 0 be whether we detected a marker, while bits 1 and 2 are for the arrow
+// TT for bits 1 and 2: 00 -> doesn't detect an arrow, 01 -> left facing arrow, 10 -> right facing arrow (essentially flip bit 1 if we need to go left, flip bit 2 if we need to go right)
+// note: in order to get test 1 to work, should add a flag that prevents us from entering the turn in the arduino once we reach the beacon
+volatile bool beacon_detected = 0;
+// 0 means we need to go left, 1 means we need to go right
+volatile bool arrow_direction = 0;
+// 0 means we need to turn, 1 means don't turn
+volatile bool no_turn = 1;
+// Bytes 2-5 of info -> stores how far away the ardunio is from the beacon (note units between the Pi and Arduino)
+volatile float distance_away = 0;
+// bytes 6-9 of info -> stores the angle the displacement of the marker once the robot detects the marker
+volatile float angle_away = 0;
+// Flag that checks if we got new data, used in conjuction with turning interrupts off when we store the volatile data into a stable data type so it can't change on us mid-read
+volatile bool new_Data = 0;
+// note: distance_away and anlge_away are transferred as floats which automatically account for negative values, not sure what the #.# format is, look it up to make sure we code it correctly on the Pi side
+
+void CV_Info(int numBytes) {
+  // checks how many bytes we got, if it != 9, then drain then get rid of the data (quickly read it without storing it anywhere)
+  if (numBytes != 9) {
+    while (Wire.available()) Wire.read();
+    return;
+  }
+
+  // checking individual bits for the values we need (5 extra bits for more information to carry in future if needed)
+  byte beacon_info = Wire.read();
+  beacon_detected = bitRead(beacon_info, 0);
+  if (bitRead(beacon_info, 1) == 1) {
+    arrow_direction = 0;
+    no_turn = 0;
+  } else if (bitRead(beacon_info, 2) == 1) {
+    arrow_direction = 1;
+    no_turn = 0;
+  } else {
+    no_turn = 1;
+  }
+
+  // complicated since we are communicating floating point values (4 bytes for each float value, sign is transferred automatically)
+  float d, a;
+  uint8_t geo_values[8];
+  for (int i = 0; i < 8; i++) geo_values[i] = Wire.read();
+  memcpy(&d, &geo_values[0], sizeof(float));
+  memcpy(&a, &geo_values[4], sizeof(float));
+  distance_away = d;
+  angle_away = a;
+  new_Data = 1;
+}
+
+
 void loop() {
+  // I2C code to extract values for our data
+  if (new_Data) {
+    // Copy with interrupts off so a new packet can't change values mid-read
+    noInterrupts();
+    bool b_det = beacon_detected;
+    bool n_turn = no_turn;
+    bool a_dir = arrow_direction;
+    float dist = distance_away;
+    float  ang  = angle_away;
+    new_Data = 0;
+    interrupts();
+  }
+
   if (state == DONE) return;
 
   // Time since power-up in seconds (for the log and the start delay)
