@@ -361,6 +361,7 @@ void loop() {
       }
       break;
 
+    // test is we see the arrow when we stop, if not, check if this can cause any errors
     case ARROW: {
       // Use a fresh reading of the arrow if we get one, else the last one seen
       int dir = 0;
