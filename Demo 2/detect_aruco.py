@@ -95,21 +95,25 @@ while True:
         raw_dist = (MARKER_SIZE_FT * fx) / pixel_width
         dist_readings.append(raw_dist)
 
-        # Arrow Color (Green=Left, Red=Right)
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask_green = cv2.inRange(hsv, np.array([40, 50, 50]), np.array([90, 255, 255]))
-        mask_red1 = cv2.inRange(hsv, np.array([0, 100, 100]), np.array([10, 255, 255]))
-        mask_red2 = cv2.inRange(hsv, np.array([160, 100, 100]), np.array([180, 255, 255]))
-        mask_red = cv2.bitwise_or(mask_red1, mask_red2)
-
+    # Arrow color: only look near the marker (box scales with distance)
+        w = pixel_width
+        x0 = int(max(u - 3*w, 0)); x1 = int(min(u + 3*w, frame.shape[1]))
+        y0 = int(max(v - 1.5*w, 0)); y1 = int(min(v + 1.5*w, frame.shape[0]))
+        roi = frame[y0:y1, x0:x1].copy()
+        cv2.fillPoly(roi, [np.int32(c - [x0, y0])], (0, 0, 0))   # blank the marker
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        mask_green = cv2.inRange(hsv, np.array([40, 70, 50]), np.array([90, 255, 255]))
+        mask_red = cv2.bitwise_or(
+            cv2.inRange(hsv, np.array([0, 120, 70]), np.array([8, 255, 255])),
+            cv2.inRange(hsv, np.array([165, 120, 70]), np.array([180, 255, 255])))
         green_pixels = cv2.countNonZero(mask_green)
         red_pixels = cv2.countNonZero(mask_red)
-
-        if green_pixels > 2000 and green_pixels > red_pixels:
-            flags |= 2  # Left Arrow (bit 1)
-        elif red_pixels > 2000 and red_pixels > green_pixels:
-            flags |= 4  # Right Arrow (bit 2)
-
+        need = 0.3 * w * w          # arrow must cover ~30% of a marker's area
+        print(f"green {green_pixels}  red {red_pixels}  need {need:.0f}")
+        if green_pixels > need and green_pixels > 2 * red_pixels:
+            flags |= 2              # Left (green)
+        elif red_pixels > need and red_pixels > 2 * green_pixels:
+            flags |= 4              # Right (red)
         if len(angle_readings) >= N_AVG:
             angle_deg = float(np.median(angle_readings)) + ANGLE_OFFSET
             distance_ft = float(np.median(dist_readings))
