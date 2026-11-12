@@ -7,9 +7,6 @@
        point (rho_des), like the old 3 ft stop re-measure but without stopping.
     2. After the arrow is read, APPROACH is capped at ApproachSpeed (0.5) instead of
        rhodot_max (1.6), so the robot can brake before the beacon.
-    3. TURN90 aims for 92 deg (Turn90Deg) to fix undershoot, must get within 0.5 deg,
-       turns at Turn90Rate (1.0 rad/s) so the wheels don't slip, and may wait up to
-       1.5 s if it stalls short.
 
   (Rolling notes:)
 
@@ -134,11 +131,7 @@ float rhodot_max = 1.6;              // SPEED: was 0.75. m/s request, about 0.53
 
 // Phase end conditions
 float AlignTol = 1.0 * PI / 180.0;   // rad, beacon counted as centered (2 deg at 5 ft = 2 in)
-float Turn90Deg = 92.0;              // v2: aim 2 deg PAST 90 (it was undershooting)
-float Turn90Tol = 0.5 * PI / 180.0;  // v2: was 3 deg. Must get within 0.5 deg of the goal before stopping
-float Turn90Rate = 1.0;              // v2: rad/s turn-rate limit for the 90 only. phidot_max (3.0) makes the
-                                     // wheels slip, so the encoders think it turned farther than it did
-float Turn90StuckTime = 1.5;         // v2: s stalled before giving up on the 90 (integral needs time to close the gap)
+float Turn90Tol = 3.0 * PI / 180.0;  // SPEED: was 3.0 * PI / 180.0. rad
 float DistTol = 0.0508;              // SPEED: was 0.0254. m (2 in); distance only needs to be within 1.5 ft
 float StillRate = 0.01;              // m/s and rad/s counted as "stopped"
 float SettleTime = 0.03;             // ROLLING: was 0.1. s (3 loops) stopped before a phase counts as done
@@ -538,18 +531,14 @@ void loop() {
       if ((abs(rho_des - rho) < DistTol && settle_timer >= SettleTime) ||
           settle_timer >= StuckTime || phase_timer >= PhaseTimeout) {
         rho_des = rho;
-        phi_des = phi + turn_dir * Turn90Deg * DegToRad;
+        phi_des = phi + turn_dir * 90.0 * DegToRad;
         enterState(TURN90);
       }
       break;
 
     case TURN90:
-      // Stricter than other turns: within 1 deg of 91 and still. If it stalls short,
-      // wait up to Turn90StuckTime so the integral can push it the rest of the way.
       if ((abs(phi_des - phi) < Turn90Tol && settle_timer >= SettleTime) ||
-          settle_timer >= Turn90StuckTime || phase_timer >= PhaseTimeout) {
-        Serial.print("# turn90 error deg ");
-        Serial.println((phi_des - phi) * 180.0 / PI, 2);
+          settle_timer >= StuckTime || phase_timer >= PhaseTimeout) {
         enterState(DONE);
       }
       break;
@@ -585,11 +574,9 @@ void loop() {
     phi_dot_d = Kp_phi_out * e_phi + Ki_phi_out * phi_int - Kd_phi_out * phi_dot;
     rho_dot_d = Kp_rho_out * e_rho + Ki_rho_out * rho_int - Kd_rho_out * rho_dot;
 
-    // The final 90 turns slower so the wheels don't slip (slip = real undershoot)
-    float phi_lim = (state == TURN90) ? Turn90Rate : phidot_max;
-    if (abs(phi_dot_d) > phi_lim) {
+    if (abs(phi_dot_d) > phidot_max) {
       phi_int -= e_phi * dt;
-      phi_dot_d = constrain(phi_dot_d, -phi_lim, phi_lim);
+      phi_dot_d = constrain(phi_dot_d, -phidot_max, phidot_max);
     }
     // While reading the arrow, cap the forward speed at a slow creep
     float rho_lim = (state == ARROW) ? ArrowCreepSpeed
