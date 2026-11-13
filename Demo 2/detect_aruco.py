@@ -1,3 +1,21 @@
+"""
+================================================================================
+DEMO 2: ARUCO MARKER & DIRECTIONAL ARROW DETECTION
+================================================================================
+Demo Summary:
+This script acts as the "eyes" of a robot (running on a Raspberry Pi). It uses a
+webcam to find a specific 2-inch navigation target (ArUco Marker ID 0), measures
+how far away it is and at what angle, checks whether a green (left) or red 
+(right) arrow is next to it, displays live status on an LCD screen, and sends 
+the navigation commands over I2C to an Arduino.
+
+Hardware & Sensor Adjustments Built In:
+- Lens Undistortion: Uses saved camera calibration data for accurate angles.
+- Noise Filtering: Collects 7 frames and takes the median to prevent jitter.
+- Color Compensation: Masks out the marker itself and adjusts thresholds to
+  account for a camera sensor that biases toward green and washes out red.
+================================================================================
+"""
 import cv2
 import numpy as np
 import smbus2
