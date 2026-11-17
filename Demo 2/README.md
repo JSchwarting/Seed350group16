@@ -19,3 +19,6 @@ Advanced File Descriptions:
 
     LCD Issues Folder:
         README.md: Explains why the LCD stopped working when the Arduino was on the same I2C wires, how to check the wiring, and how to run the code on the Pi.
+
+    Simulation Files Folder:
+        SteeringCamera.slx: Simulation of the Full Robot with the camera in the loop, so the robot steers using what the camera sees.
