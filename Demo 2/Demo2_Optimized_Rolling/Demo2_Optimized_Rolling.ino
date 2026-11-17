@@ -1,8 +1,11 @@
 /*
   Demo2_Optimized_Rolling.ino  -  SEED Lab Group 16, Demo 2
 
-  ROLLING version (Nov 12): copy of Demo2_Optimized_Speed (with bob's 75 deg steps,
-  phidot_max 3.0, rhodot_max 1.6). Changes (search "ROLLING:" for the settings):
+  Final Arduino Code: Purpose, Rotate till we find the marker using state machine, drive towards the marker, read the arrow color
+  then we turn 90 degrees. 
+
+Changes from previous versions. 
+  ROLLING version (Nov 12): copy of Demo2_Optimized_Speed
     1. Much shorter waits: StartDelay 0, SearchPause 0.15 s, SettleTime 0.03 s,
        StuckTime 0.5 s, LookTimeout 0.5 s.
     2. Trial 2 no longer STOPS at 3 ft to read the arrow. It drives toward the
@@ -17,9 +20,8 @@
     rhodot_max 0.75 -> 0.8, phidot_max 1.0 -> 1.2, SettleTime 0.2 -> 0.1,
     StartDelay 0.5 -> 0.1, ArrowTimeout 2.0 -> 1.0, DistTol 1 in -> 2 in,
     Turn90Tol 3 -> 5 deg. Logic, gains, and search steps are unchanged.
-  If it gets unreliable, put these back one at a time (start with rhodot_max).
 
-  (Based on Demo2_UPDATED_TwoStage:)
+  Adapted from our 2 stage. 
 
   TwoStage version (Nov 10): copy of Demo2_UPDATED_Step45 (60 deg search steps etc.)
   with one change for trial 2: the robot first stops about ArrowStopFt (3 ft) from
@@ -31,14 +33,7 @@
     TRIAL 2 ORDER: ... ALIGN -> LOOK -> DRIVE (to 3 ft) -> ARROW (read arrow, up to 2 s)
                    -> APPROACH (drive to StopDistFt) -> TURN90 -> DONE
 
-  Step45 version (Nov 9): same as Demo2_UPDATED except SEARCH. The camera can't
-  detect the marker while the robot is spinning, so SEARCH now turns 45 deg, stops,
-  looks for SearchPause (1 s), and repeats until the Pi reports the beacon.
-
-  Built from bob's Demo 2 draft (Demo1TurnDrive_UPDATED_PI + the I2C starter code).
-  The controller (outer PI -> inner P -> wheel voltages) is unchanged from Demo 1.
-  What is new is the state machine that gets its goals from the Pi instead of
-  hard-coded PhiGoalDeg / DistGoalFt:
+ State machine: 
 
     WAIT     stand still for StartDelay (must start moving within 30 s of "go")
     SEARCH   look for SearchPause (1 s) standing still; if nothing, turn SearchStepDeg
@@ -53,27 +48,7 @@
     TURN90   (trial 2 only) turn 90 deg toward the arrow
     DONE     motors off
 
-  Changes vs. bob's draft:
-    1. Goals come from the Pi through the states above.
-    2. I2C packet copied into normal variables every loop (the draft copied them
-       into locals inside the if-block, so they disappeared right away).
-    3. The ISR's local float was named d, same as the wheel separation d; renamed
-       to avoid confusion.
-    4. Accepts a 10-byte packet too: smbus2's write_i2c_block_data(addr, cmd, data)
-       sends cmd first, so 9 data bytes arrive as 10. The extra first byte is dropped.
-    5. A packet counter, so the code can tell "new packet since I stopped" apart
-       from "old packet still in the variables".
-    6. Integrals reset at every state change so one phase can't kick the next.
-
-  THINGS TO CONFIRM WITH THE VISION TEAM (settings below):
-    - distance units (DistToM): this assumes FEET from the camera to the marker
-    - angle units and sign (AngleSign): this assumes DEGREES, + = beacon to the LEFT
-      (same as Demo 1 task 1)
-    - CamOffsetM: how far the camera sits in front of the wheel axle
-    - whether the Pi sends packets all the time (with bit 0 = 0 when it sees nothing)
-      or only when it sees the marker. Both work, the timeouts cover the second case.
-    - Pi side packing should be struct.pack('<Bff', flags, dist, angle) (little-endian,
-      same float format as the Arduino).
+ 
 
   Serial log: same 12 tab-separated columns as Demo 1 (state col 2 now goes 0-8).
   Lines starting with '#' are event messages; skip them when importing in MATLAB.
