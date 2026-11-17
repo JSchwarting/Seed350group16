@@ -1,9 +1,14 @@
 Group: Team 16
+
 Purpose: This folder houses all code related to Demo 2 for SEED Lab
+
 File for Controls subsystem grading is Demo2_Optimized_Rolling.ino within the Final Arduino Code Folder.
+
 File for CV subsystem grading is detect_aruco.py within the Final Raspberry Pi Code Folder.
 
 Advanced File Descriptions:
+
+```
     Final Arduino Code Folder:
         Demo2_Optimized_Rolling.ino: This file is our finalized code. It uses the same controllers as Demo 1 (Inner loop uses a P controller to control the velocity, while the outer loop uses a PI controller to control the position of the robot). It adds a state machine that rotates until the Pi sees the marker, turns to face it, drives toward it, reads the arrow color while slowing down (Trial 2), stops, and then turns 90 degrees in the direction of the arrow.
 
@@ -22,3 +27,4 @@ Advanced File Descriptions:
 
     Simulation Files Folder:
         SteeringCamera.slx: Simulation of the Full Robot with the camera in the loop, so the robot steers using what the camera sees.
+```
