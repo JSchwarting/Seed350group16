@@ -24,6 +24,9 @@ FINAL DEMO UPDATE (Nov 20) - search "ARROWVOTE":
   So the flag is steady: 1 = marker only, 3 = marker + green, 5 = marker + red.
 - The window is cleared when the marker is lost, so a new marker starts fresh.
 - The terminal line now shows the raw per-frame vote AND the steady flag sent.
+- GREENFIX: green needed 30% of the marker's area in PIXELS (e.g. "need 3500"
+  up close), which it rarely hit. Now 10%, same as red (GREEN_NEED_FRAC).
+  Green must still be more than 2x the red pixels.
 ================================================================================
 """
 import cv2
@@ -42,6 +45,8 @@ MARKER_SIZE_FT = 2.0 / 12.0  # 2-inch marker
 ARDUINO_I2C_ADDR = 0x08 # Arduino's address
 ARROW_WINDOW = 9        # ARROWVOTE: frames of color votes kept (marker-seen frames only)
 ARROW_MIN_VOTES = 3     # ARROWVOTE: votes a color needs (and it must beat the other color)
+GREEN_NEED_FRAC = 0.10  # GREENFIX: green pixels needed, as a fraction of the marker's area (was 0.30)
+RED_NEED_FRAC = 0.10    # red pixels needed, as a fraction of the marker's area (unchanged)
 
 # ==================== CALIBRATION ====================
 calib = np.load("calibration_data.npz")
@@ -142,8 +147,8 @@ while True:
             cv2.inRange(hsv, np.array([160, 80, 50]), np.array([180, 255, 255])))
         green_pixels = cv2.countNonZero(mask_green)
         red_pixels = cv2.countNonZero(mask_red)
-        need = 0.3 * w * w          # green arrow must cover ~30% of a marker's area
-        red_need = 0.1 * w * w      # red only needs ~10%: the camera under-reads red
+        need = GREEN_NEED_FRAC * w * w      # GREENFIX: green needs ~10% of a marker's area (was 30%)
+        red_need = RED_NEED_FRAC * w * w    # red needs ~10%: the camera under-reads red
         print(f"green {green_pixels}  red {red_pixels}  need {need:.0f}  red_need {red_need:.0f}")
         # The camera is biased toward green: there is almost always a little green
         # in view (25-50 px). So check RED FIRST and only ask that red clearly beats
